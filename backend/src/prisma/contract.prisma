@@ -1,0 +1,109 @@
+// use prisma-8
+
+enum TicketStatus {
+  @@type("pg/text@1")
+  Recibido          = "Recibido"
+  EnDiagnostico     = "En Diagnostico"
+  EnReparacion      = "En Reparacion"
+  ListoParaEntregar = "Listo para Entregar"
+  Entregado         = "Entregado"
+  Cancelado         = "Cancelado"
+  NoReparable       = "No reparable"
+}
+
+model Customer {
+  id             Int      @id @default(autoincrement())
+  name           String
+  identification String   @unique
+  phone          String
+  devices        Device[]
+  tickets        SupportTicket[]
+  createdAt      TimestamptzString @default(now())
+  updatedAt      temporal.updatedAtString()
+}
+
+model Device {
+  id        Int      @id @default(autoincrement())
+  customerId Int
+  type      String
+  brand     String
+  model     String
+  imei      String?
+  customer  Customer @relation(fields: [customerId], references: [id])
+  tickets   SupportTicket[]
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([customerId])
+}
+
+model SupportTicket {
+  id                  Int      @id @default(autoincrement())
+  orderNumber         String   @unique
+  customerId          Int
+  deviceId            Int
+  technician          String
+  status              TicketStatus @default(Recibido)
+  reportedProblem     String
+  diagnosis           String?
+  observations        String?
+  problems            TicketProblem[]
+  parts               TicketPart[]
+  statusHistory       TicketStatusHistory[]
+  sim1Received        Boolean  @default(false)
+  sim2Received        Boolean  @default(false)
+  sdReceived          Boolean  @default(false)
+  otherAccessories    String?
+  lockType                String?
+  lockCredentialEncrypted String?
+  totalCostCents      Int      @default(0)
+  advancePaidCents    Int      @default(0)
+  receivedAt          TimestamptzString @default(now())
+  deliveredAt         TimestamptzString?
+  customer            Customer @relation(fields: [customerId], references: [id])
+  device              Device   @relation(fields: [deviceId], references: [id])
+  createdAt           TimestamptzString @default(now())
+  updatedAt           temporal.updatedAtString()
+
+  @@index([customerId])
+  @@index([deviceId])
+  @@index([status])
+  @@index([receivedAt])
+}
+
+model TicketProblem {
+  id          Int           @id @default(autoincrement())
+  ticketId    Int
+  description String
+  notes       String?
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id])
+  createdAt   TimestamptzString @default(now())
+
+  @@index([ticketId])
+}
+
+model TicketPart {
+  id          Int           @id @default(autoincrement())
+  ticketId    Int
+  name        String
+  quantity    Int           @default(1)
+  unitCostCents Int         @default(0)
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id])
+  createdAt   TimestamptzString @default(now())
+
+  @@index([ticketId])
+}
+
+model TicketStatusHistory {
+  id            Int           @id @default(autoincrement())
+  ticketId      Int
+  previousStatus TicketStatus?
+  newStatus      TicketStatus
+  notes         String?
+  changedAt     TimestamptzString @default(now())
+  ticket        SupportTicket @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])
+}
+
+
